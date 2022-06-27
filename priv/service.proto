@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package switchml;
+
+service SwitchmlWeightsService {
+  rpc SendWeights (SendWeightsRequest) returns (SendWeightsResponse) {}
+  rpc FetchWeights (FetchWeightsRequest) returns (FetchWeightsResponse) {}
+}
+
+message SendWeightsRequest {
+ string weights = 1;
+}
+
+message SendWeightsResponse {}
+
+message FetchWeightsRequest {}
+
+message FetchWeightsResponse {
+  string weights = 1;
+}
