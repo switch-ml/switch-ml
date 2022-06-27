@@ -30,3 +30,4 @@ deps
 ml/venv
 .vscode
 *.pyc
+venv

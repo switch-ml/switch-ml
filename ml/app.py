@@ -1,14 +1,18 @@
 from concurrent import futures
-from datetime import datetime
 import time
 import grpc
-import mlserver
 
 import json
 
+import sys
+import os
 
-import service_pb2
-import service_pb2_grpc
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+
+from ml import mlserver, service_pb2, service_pb2_grpc
+
 
 from google.protobuf.json_format import MessageToJson
 
