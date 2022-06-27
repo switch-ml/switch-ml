@@ -19,3 +19,12 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/switchml](https://hexdocs.pm/switchml).
 
+## ProtoBuf Conf
+
+### Python
+
+`python -m grpc_tools.protoc -I=. --python_out=. --grpc_python_out=. priv/service.proto`
+
+### Elixir
+
+`protoc --elixir_out=plugins=grpc:. priv/service.proto`

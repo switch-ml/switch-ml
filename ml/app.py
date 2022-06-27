@@ -2,6 +2,9 @@ from concurrent import futures
 from datetime import datetime
 import time
 import grpc
+import mlserver
+
+import json
 
 
 import service_pb2
@@ -24,11 +27,21 @@ class WeightService(service_pb2_grpc.SwitchmlWeightsServiceServicer):
 
         print(f"FETCHING WEIGHTS: {request}")
 
-        return service_pb2.FetchWeightsResponse(weights="Server Weights")
+        weights = mlserver.get_server_weights()
+
+        weights = json.dumps(weights)
+
+        return service_pb2.FetchWeightsResponse(weights=weights)
 
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        options=[
+            ("grpc.max_send_message_length", 512 * 1024 * 1024),
+            ("grpc.max_receive_message_length", 512 * 1024 * 1024),
+        ],
+    )
 
     service_pb2_grpc.add_SwitchmlWeightsServiceServicer_to_server(
         WeightService(), server
