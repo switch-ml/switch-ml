@@ -27,4 +27,6 @@ switchml-*.tar
 
 .vscode
 
+*.pyc
+
 venv/

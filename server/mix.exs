@@ -14,7 +14,8 @@ defmodule Switchml.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      mod: {Switchml, []},
+      extra_applications: [:logger, :grpc]
     ]
   end
 
@@ -23,6 +24,10 @@ defmodule Switchml.MixProject do
     [
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:grpc, "~> 0.3.1"},
+      {:protobuf, "~> 0.10.0"},
+      {:google_protos, "~> 0.2.0"},
+      {:cowlib, "~> 2.8", hex: :grpc_cowlib, override: true}
     ]
   end
 end

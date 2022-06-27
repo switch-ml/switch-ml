@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package switchml;
+
+// The weight service definition.
+service WeightService {
+  // Sends model weights
+  rpc SendWeights (SendWeightsRequest) returns (SendWeightsResponse) {}
+  // Get model weights
+  rpc FetchWeights (FetchWeightsRequest) returns (FetchWeightsResponse) {}
+}
+
+// The request message containing the model weights.
+message SendWeightsRequest {
+    string weights = 1;
+}
+
+message SendWeightsResponse {}
+
+message FetchWeightsRequest {}
+
+message FetchWeightsResponse {
+    string weights = 1;
+}
