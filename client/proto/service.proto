@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package switchml;
+
+service SwitchmlWeightsService {
+    rpc SendWeights (SendWeightsRequest) returns (SendWeightsResponse) {}
+    rpc FetchWeights (FetchWeightsRequest) returns (FetchWeightsResponse) {}
+}
+
+message SendWeightsRequest {
+    FitRes fit_res = 2;
+    EvaluateRes eval_res =3;
+}
+
+message SendWeightsResponse {}
+
+message FetchWeightsRequest {}
+
+message FetchWeightsResponse {
+    Parameters parameters = 1;
+}
+
+message Parameters {
+    repeated bytes tensors = 1;
+    string tensor_type = 2;
+}
+  
+message EvaluateRes {
+    float loss = 2;
+    int64 num_examples = 3;
+    map<string, float> metrics = 4;
+}
+
+message FitRes {
+    Parameters parameters = 2;
+    int64 num_examples = 3;
+    map<string, float> metrics = 4;
+}
+
