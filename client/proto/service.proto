@@ -9,10 +9,11 @@ service SwitchmlWeightsService {
 
 message SendWeightsRequest {
     FitRes fit_res = 2;
-    EvaluateRes eval_res =3;
 }
 
-message SendWeightsResponse {}
+message SendWeightsResponse {
+    Parameters parameters = 1;
+}
 
 message FetchWeightsRequest {}
 

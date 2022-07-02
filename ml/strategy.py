@@ -15,8 +15,6 @@ def aggregate(results):
     # Calculate the total number of examples used during training
     count_total = sum([count for _, count in results])
 
-    print("COUNT TOTAL:", count_total)
-
     # Create a list of weights, each multiplied by the related number of examples
     weighted_weights = [
         [layer * count for layer in weights] for weights, count in results
@@ -41,7 +39,6 @@ def metrics_average(results):
     counts = []
 
     for client in results:
-        print("CLIENT INFO:", client)
         metrics = client[0]
         count = client[1]
 
@@ -53,11 +50,6 @@ def metrics_average(results):
 
     counts_total = sum(counts)
 
-    print("COUNTS TOTAL: ", counts_total)
-    print("TRAIN ACCS: ", train_accs)
-    print("TRAIN LOSS: ", train_loss)
-    print("VAL ACCS: ", val_accs)
-    print("VAL LOSS: ", val_loss)
 
     return {
         "train_loss": sum(train_loss) / counts_total,
@@ -78,11 +70,9 @@ def federated_average(clients_data, fit_metrics_aggregation_fn=None):
 
         fit_res = client.get("fit_res")
 
-        eval_res = client.get("eval_res")
 
         weights = parameters_to_weights(fit_res.parameters)
 
-        print("TYPE OF WEIGHTS:", type(weights))
 
         count = fit_res.num_examples
 
@@ -93,16 +83,13 @@ def federated_average(clients_data, fit_metrics_aggregation_fn=None):
         client_metrics.append((train_metrics, count))
 
     # Aggregating all weights
-    print("AGGREGATING ALL WEIGHTS")
     agg_weights = aggregate(weights_results)
 
-    print("FORMATTING WEIGHTS TO PARAMETERS")
 
-    parameters_aggregated = weights_to_parameters(agg_weights)
 
     # Aggregate custom metrics if aggregation fn was provided
     if fit_metrics_aggregation_fn:
         print("AGGREGATING EVALUATION METRICS")
         metrics_aggregated = fit_metrics_aggregation_fn(client_metrics)
 
-    return parameters_aggregated, metrics_aggregated
+    return agg_weights, metrics_aggregated

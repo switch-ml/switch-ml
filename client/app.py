@@ -16,10 +16,12 @@ import client.proto.service_pb2 as service_pb2
 import client.proto.service_pb2_grpc as service_pb2_grpc
 
 
-def send_weights(stub, train_results, eval_results):
-    req = service_pb2.SendWeightsRequest(fit_res=train_results, eval_res=eval_results)
-    stub.SendWeights(req)
-    print("SENT WEIGHTS")
+def send_weights(stub, train_results, client):
+    req = service_pb2.SendWeightsRequest(fit_res=train_results)
+    agg_weights = stub.SendWeights(req)
+    print("SENT WEIGHTS ...\n")
+    weights = parameters_to_weights(agg_weights.parameters)
+    start_evaluation(client,weights)
 
 
 def fetch_weights(stub):
@@ -28,11 +30,25 @@ def fetch_weights(stub):
     print("RECIEVED WEIGHTS")
     return response.parameters
 
+def start_evaluation(client, weights):
+    test_config = evaluate_config()
+    eval_loss, eval_count, eval_metrics = client.evaluate(
+        weights, test_config
+    )
 
-def start_process(weights, dry_test=False):
+    # print("Eval Count: ", eval_count)
+    print("Eval Results: ", eval_metrics)
+    print("Eval Loss: ", eval_loss)
+
+    eval_res = service_pb2.EvaluateRes(
+        loss=eval_loss, num_examples=eval_count, metrics=eval_metrics
+    )
+
+
+
+def start_training(weights, dry_test=False):
     train_config = fit_config()
 
-    test_config = evaluate_config()
 
     device = device_config()
 
@@ -49,16 +65,11 @@ def start_process(weights, dry_test=False):
 
     trained_weights, train_count, train_metrics = client.fit(weights, train_config)
 
-    eval_loss, eval_count, eval_metrics = client.evaluate(
-        get_model_params(model), test_config
-    )
 
-    print("Train Count: ", train_count)
-    print("Train Results: ", train_metrics)
+    # print("Train Count: ", train_count)
+    # print("Train Results: ", train_metrics)
 
-    print("Eval Count: ", eval_count)
-    print("Eval Results: ", eval_metrics)
-    print("Eval Loss: ", eval_loss)
+    
 
     params = weights_to_parameters(trained_weights)
 
@@ -70,16 +81,13 @@ def start_process(weights, dry_test=False):
         parameters=params, num_examples=train_count, metrics=train_metrics
     )
 
-    eval_res = service_pb2.EvaluateRes(
-        loss=eval_loss, num_examples=eval_count, metrics=eval_metrics
-    )
 
-    return fit_res, eval_res
+    return client, fit_res
 
 
 def run():
     with grpc.insecure_channel(
-        "localhost:4000",
+        "localhost:8000",
         options=get_grpc_options(),
     ) as channel:
 
@@ -94,9 +102,11 @@ def run():
 
         weights = parameters_to_weights(parameters)
 
-        fit_res, eval_res = start_process(weights)
+        client, fit_res= start_training(weights, False)
 
-        send_weights(stub, fit_res, eval_res)
+        send_weights(stub, fit_res, client)
+
+        
 
 
 if __name__ == "__main__":

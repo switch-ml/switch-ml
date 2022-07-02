@@ -22,7 +22,7 @@ model = None
 CLIENTS_DATA = []
 
 
-def load_and_evaluate():
+def load_and_evaluate(init_load=False, agg_weights=None):
     global model
 
     model = utils.load_efficientnet(classes=10)
@@ -31,11 +31,15 @@ def load_and_evaluate():
 
     valLoader = DataLoader(testset, batch_size=1)
 
-    loss, results = utils.evaluate(model, utils.get_model_params(model), valLoader)
+    weights = agg_weights if agg_weights else utils.get_model_params(model)
 
-    print("Loss: ", loss)
+    
 
-    print("Results: ", results)
+    loss, results = utils.evaluate(model, weights, valLoader)
+
+    print("Fit Loss: ", loss)
+
+    print("Fit Results: ", results)
 
 
 def client_weights():
@@ -47,7 +51,14 @@ def client_weights():
 
     print("Aggregated Metrics: ", average_metrics)
 
-    load_and_evaluate()
+    load_and_evaluate(False, average_weights)
+
+    params = parameter.weights_to_parameters(average_weights)
+
+    params = service_pb2.Parameters(
+        tensors=params.tensors, tensor_type=params.tensor_type
+    )
+    return params
 
 
 class WeightService(service_pb2_grpc.SwitchmlWeightsServiceServicer):
@@ -55,11 +66,14 @@ class WeightService(service_pb2_grpc.SwitchmlWeightsServiceServicer):
 
         print(f"INCOMING WEIGHTS")
 
-        CLIENTS_DATA.append({"fit_res": request.fit_res, "eval_res": request.eval_res})
+        CLIENTS_DATA.append({"fit_res": request.fit_res})
 
-        client_weights()
+        # if len(CLIENTS_DATA) > 2: 
 
-        return service_pb2.SendWeightsResponse()
+        params = client_weights()
+
+        return service_pb2.SendWeightsResponse(parameters=params)
+        
 
     def FetchWeights(self, request, context):
 
@@ -94,7 +108,7 @@ def serve():
 
     # Model Initialization
 
-    load_and_evaluate()
+    load_and_evaluate(True)
 
     server.start()
     try:

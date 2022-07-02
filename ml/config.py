@@ -13,7 +13,7 @@ def fit_config():
     Conditions to train client model on client data
     """
     config = {
-        "batch_size": 1,
+        "batch_size": 8,
         "local_epochs": 1,
     }
     return config

@@ -15,15 +15,15 @@ class SwitchmlWeightsServiceStub(object):
             channel: A grpc.Channel.
         """
         self.SendWeights = channel.unary_unary(
-            "/switchml.SwitchmlWeightsService/SendWeights",
-            request_serializer=service__pb2.SendWeightsRequest.SerializeToString,
-            response_deserializer=service__pb2.SendWeightsResponse.FromString,
-        )
+                '/switchml.SwitchmlWeightsService/SendWeights',
+                request_serializer=service__pb2.SendWeightsRequest.SerializeToString,
+                response_deserializer=service__pb2.SendWeightsResponse.FromString,
+                )
         self.FetchWeights = channel.unary_unary(
-            "/switchml.SwitchmlWeightsService/FetchWeights",
-            request_serializer=service__pb2.FetchWeightsRequest.SerializeToString,
-            response_deserializer=service__pb2.FetchWeightsResponse.FromString,
-        )
+                '/switchml.SwitchmlWeightsService/FetchWeights',
+                request_serializer=service__pb2.FetchWeightsRequest.SerializeToString,
+                response_deserializer=service__pb2.FetchWeightsResponse.FromString,
+                )
 
 
 class SwitchmlWeightsServiceServicer(object):
@@ -32,93 +32,68 @@ class SwitchmlWeightsServiceServicer(object):
     def SendWeights(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def FetchWeights(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_SwitchmlWeightsServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "SendWeights": grpc.unary_unary_rpc_method_handler(
-            servicer.SendWeights,
-            request_deserializer=service__pb2.SendWeightsRequest.FromString,
-            response_serializer=service__pb2.SendWeightsResponse.SerializeToString,
-        ),
-        "FetchWeights": grpc.unary_unary_rpc_method_handler(
-            servicer.FetchWeights,
-            request_deserializer=service__pb2.FetchWeightsRequest.FromString,
-            response_serializer=service__pb2.FetchWeightsResponse.SerializeToString,
-        ),
+            'SendWeights': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendWeights,
+                    request_deserializer=service__pb2.SendWeightsRequest.FromString,
+                    response_serializer=service__pb2.SendWeightsResponse.SerializeToString,
+            ),
+            'FetchWeights': grpc.unary_unary_rpc_method_handler(
+                    servicer.FetchWeights,
+                    request_deserializer=service__pb2.FetchWeightsRequest.FromString,
+                    response_serializer=service__pb2.FetchWeightsResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "switchml.SwitchmlWeightsService", rpc_method_handlers
-    )
+            'switchml.SwitchmlWeightsService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class SwitchmlWeightsService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def SendWeights(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def SendWeights(request,
             target,
-            "/switchml.SwitchmlWeightsService/SendWeights",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/switchml.SwitchmlWeightsService/SendWeights',
             service__pb2.SendWeightsRequest.SerializeToString,
             service__pb2.SendWeightsResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def FetchWeights(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def FetchWeights(request,
             target,
-            "/switchml.SwitchmlWeightsService/FetchWeights",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/switchml.SwitchmlWeightsService/FetchWeights',
             service__pb2.FetchWeightsRequest.SerializeToString,
             service__pb2.FetchWeightsResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
