@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rservice.proto\x12\x08switchml\"7\n\x12SendWeightsRequest\x12!\n\x07\x66it_res\x18\x02 \x01(\x0b\x32\x10.switchml.FitRes\"?\n\x13SendWeightsResponse\x12(\n\nparameters\x18\x01 \x01(\x0b\x32\x14.switchml.Parameters\"\x15\n\x13\x46\x65tchWeightsRequest\"@\n\x14\x46\x65tchWeightsResponse\x12(\n\nparameters\x18\x01 \x01(\x0b\x32\x14.switchml.Parameters\"2\n\nParameters\x12\x0f\n\x07tensors\x18\x01 \x03(\x0c\x12\x13\n\x0btensor_type\x18\x02 \x01(\t\"\x96\x01\n\x0b\x45valuateRes\x12\x0c\n\x04loss\x18\x02 \x01(\x02\x12\x14\n\x0cnum_examples\x18\x03 \x01(\x03\x12\x33\n\x07metrics\x18\x04 \x03(\x0b\x32\".switchml.EvaluateRes.MetricsEntry\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\"\xa8\x01\n\x06\x46itRes\x12(\n\nparameters\x18\x02 \x01(\x0b\x32\x14.switchml.Parameters\x12\x14\n\x0cnum_examples\x18\x03 \x01(\x03\x12.\n\x07metrics\x18\x04 \x03(\x0b\x32\x1d.switchml.FitRes.MetricsEntry\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\x32\xb7\x01\n\x16SwitchmlWeightsService\x12L\n\x0bSendWeights\x12\x1c.switchml.SendWeightsRequest\x1a\x1d.switchml.SendWeightsResponse\"\x00\x12O\n\x0c\x46\x65tchWeights\x12\x1d.switchml.FetchWeightsRequest\x1a\x1e.switchml.FetchWeightsResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rservice.proto\x12\x08switchml\"Y\n\x12SendWeightsRequest\x12!\n\x07\x66it_res\x18\x02 \x01(\x0b\x32\x10.switchml.FitRes\x12\r\n\x05round\x18\x03 \x01(\x03\x12\x11\n\tclient_id\x18\x04 \x01(\t\"?\n\x13SendWeightsResponse\x12(\n\nparameters\x18\x01 \x01(\x0b\x32\x14.switchml.Parameters\"\x15\n\x13\x46\x65tchWeightsRequest\"@\n\x14\x46\x65tchWeightsResponse\x12(\n\nparameters\x18\x01 \x01(\x0b\x32\x14.switchml.Parameters\"2\n\nParameters\x12\x0f\n\x07tensors\x18\x01 \x03(\x0c\x12\x13\n\x0btensor_type\x18\x02 \x01(\t\"\x96\x01\n\x0b\x45valuateRes\x12\x0c\n\x04loss\x18\x02 \x01(\x02\x12\x14\n\x0cnum_examples\x18\x03 \x01(\x03\x12\x33\n\x07metrics\x18\x04 \x03(\x0b\x32\".switchml.EvaluateRes.MetricsEntry\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\"\xa8\x01\n\x06\x46itRes\x12(\n\nparameters\x18\x02 \x01(\x0b\x32\x14.switchml.Parameters\x12\x14\n\x0cnum_examples\x18\x03 \x01(\x03\x12.\n\x07metrics\x18\x04 \x03(\x0b\x32\x1d.switchml.FitRes.MetricsEntry\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\x32\xb7\x01\n\x16SwitchmlWeightsService\x12L\n\x0bSendWeights\x12\x1c.switchml.SendWeightsRequest\x1a\x1d.switchml.SendWeightsResponse\"\x00\x12O\n\x0c\x46\x65tchWeights\x12\x1d.switchml.FetchWeightsRequest\x1a\x1e.switchml.FetchWeightsResponse\"\x00\x62\x06proto3')
 
 
 
@@ -101,23 +101,23 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _FITRES_METRICSENTRY._options = None
   _FITRES_METRICSENTRY._serialized_options = b'8\001'
   _SENDWEIGHTSREQUEST._serialized_start=27
-  _SENDWEIGHTSREQUEST._serialized_end=82
-  _SENDWEIGHTSRESPONSE._serialized_start=84
-  _SENDWEIGHTSRESPONSE._serialized_end=147
-  _FETCHWEIGHTSREQUEST._serialized_start=149
-  _FETCHWEIGHTSREQUEST._serialized_end=170
-  _FETCHWEIGHTSRESPONSE._serialized_start=172
-  _FETCHWEIGHTSRESPONSE._serialized_end=236
-  _PARAMETERS._serialized_start=238
-  _PARAMETERS._serialized_end=288
-  _EVALUATERES._serialized_start=291
-  _EVALUATERES._serialized_end=441
-  _EVALUATERES_METRICSENTRY._serialized_start=395
-  _EVALUATERES_METRICSENTRY._serialized_end=441
-  _FITRES._serialized_start=444
-  _FITRES._serialized_end=612
-  _FITRES_METRICSENTRY._serialized_start=395
-  _FITRES_METRICSENTRY._serialized_end=441
-  _SWITCHMLWEIGHTSSERVICE._serialized_start=615
-  _SWITCHMLWEIGHTSSERVICE._serialized_end=798
+  _SENDWEIGHTSREQUEST._serialized_end=116
+  _SENDWEIGHTSRESPONSE._serialized_start=118
+  _SENDWEIGHTSRESPONSE._serialized_end=181
+  _FETCHWEIGHTSREQUEST._serialized_start=183
+  _FETCHWEIGHTSREQUEST._serialized_end=204
+  _FETCHWEIGHTSRESPONSE._serialized_start=206
+  _FETCHWEIGHTSRESPONSE._serialized_end=270
+  _PARAMETERS._serialized_start=272
+  _PARAMETERS._serialized_end=322
+  _EVALUATERES._serialized_start=325
+  _EVALUATERES._serialized_end=475
+  _EVALUATERES_METRICSENTRY._serialized_start=429
+  _EVALUATERES_METRICSENTRY._serialized_end=475
+  _FITRES._serialized_start=478
+  _FITRES._serialized_end=646
+  _FITRES_METRICSENTRY._serialized_start=429
+  _FITRES_METRICSENTRY._serialized_end=475
+  _SWITCHMLWEIGHTSSERVICE._serialized_start=649
+  _SWITCHMLWEIGHTSSERVICE._serialized_end=832
 # @@protoc_insertion_point(module_scope)

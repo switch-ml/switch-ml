@@ -1,4 +1,5 @@
 import torch
+import uuid
 from torch.utils.data import DataLoader
 import torchvision.datasets
 from collections import OrderedDict
@@ -18,6 +19,7 @@ class SwitchMlClient:
         self.trainset = trainset
         self.testset = testset
         self.validation_split = validation_split
+        self.client_id = uuid.uuid4().hex
 
     def get_parameters(self):
         """Get parameters of the local model."""

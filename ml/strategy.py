@@ -50,7 +50,6 @@ def metrics_average(results):
 
     counts_total = sum(counts)
 
-
     return {
         "train_loss": sum(train_loss) / counts_total,
         "train_accuracy": sum(train_accs) / counts_total,
@@ -65,18 +64,15 @@ def federated_average(clients_data, fit_metrics_aggregation_fn=None):
     weights_results = []
     client_metrics = []
     metrics_aggregated = {}
+
     # Iteratign clients weights
     for client in clients_data:
 
-        fit_res = client.get("fit_res")
+        weights = client.get("weights")
 
+        count = client.get("num_examples")
 
-        weights = parameters_to_weights(fit_res.parameters)
-
-
-        count = fit_res.num_examples
-
-        train_metrics = fit_res.metrics
+        train_metrics = client.get("metrics")
 
         weights_results.append((weights, count))
 
@@ -84,8 +80,6 @@ def federated_average(clients_data, fit_metrics_aggregation_fn=None):
 
     # Aggregating all weights
     agg_weights = aggregate(weights_results)
-
-
 
     # Aggregate custom metrics if aggregation fn was provided
     if fit_metrics_aggregation_fn:

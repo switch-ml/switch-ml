@@ -153,8 +153,6 @@ def get_dry_sets():
 
 def evaluate(model, weights, valLoader):
 
-    print("EVALUATING")
-
     # Update model with the latest parameters from client
     params_dict = zip(model.state_dict().keys(), weights)
     state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
