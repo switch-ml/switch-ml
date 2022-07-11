@@ -4,13 +4,28 @@ from torchvision.datasets import CIFAR10
 
 from collections import OrderedDict
 from torch.utils.data import DataLoader
+from tqdm import tqdm
+import config
+
+import os
+import random
+import numpy as np
 
 import warnings
-
 warnings.filterwarnings("ignore")
 
 # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+def seed_set(seed= 533):
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
 
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
+
+seed_set()
 
 def load_data():
     """Load CIFAR-10 (training and test set)."""
@@ -46,8 +61,10 @@ def load_partition(idx: int):
     return (train_parition, test_parition)
 
 
-def train(net, trainloader, valloader, epochs, device: str = "cpu"):
+def train(net, trainloader, valloader, epochs):
     """Train the network on the training set."""
+    device = config.device_config()
+
     print("Starting training...")
     net.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -56,7 +73,7 @@ def train(net, trainloader, valloader, epochs, device: str = "cpu"):
     )
     net.train()
     for _ in range(epochs):
-        for images, labels in trainloader:
+        for images, labels in tqdm(trainloader, total=len(trainloader)):
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
             loss = criterion(net(images), labels)
@@ -77,15 +94,18 @@ def train(net, trainloader, valloader, epochs, device: str = "cpu"):
     return results
 
 
-def test(net, testloader, steps: int = None, device: str = "cpu"):
+def test(net, testloader, steps: int = None):
     """Validate the network on the entire test set."""
+    device = config.device_config()
+
     print("Starting evalutation...")
+        
     net.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss()
     correct, total, loss = 0, 0, 0.0
     net.eval()
     with torch.no_grad():
-        for batch_idx, (images, labels) in enumerate(testloader):
+        for batch_idx, (images, labels) in tqdm(enumerate(testloader), total=len(testloader)):
             images, labels = images.to(device), labels.to(device)
             outputs = net(images)
             loss += criterion(outputs, labels).item()

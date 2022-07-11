@@ -47,15 +47,13 @@ class SwitchMlClient:
         n_valset = int(len(self.trainset) * self.validation_split)
 
         valset = torch.utils.data.Subset(self.trainset, range(0, n_valset))
-        trainset = torch.utils.data.Subset(
-            self.trainset, range(n_valset, len(self.trainset))
-        )
+        trainset = torch.utils.data.Subset(self.trainset, range(n_valset, len(self.trainset)))
 
         trainLoader = DataLoader(trainset, batch_size=batch_size, shuffle=True)
         valLoader = DataLoader(valset, batch_size=batch_size)
 
         results = utils.train(model, trainLoader, valLoader, epochs, self.device)
-
+        
         parameters_prime = utils.get_model_params(model)
         num_examples_train = len(trainset)
 
@@ -70,7 +68,7 @@ class SwitchMlClient:
         steps: int = config["val_steps"]
 
         # Evaluate global model parameters on the local test data and return results
-        testloader = DataLoader(self.testset, batch_size=16)
+        testloader = DataLoader(self.testset, batch_size= 16)
 
         loss, accuracy = utils.test(model, testloader, steps, self.device)
         return float(loss), len(self.testset), {"accuracy": float(accuracy)}

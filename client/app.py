@@ -1,6 +1,7 @@
 import grpc
 import sys
 import os
+import random
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -9,7 +10,7 @@ sys.path.append(os.path.dirname(SCRIPT_DIR))
 from client.client_manager import SwitchMlClient
 from client.config import fit_config, evaluate_config, device_config, get_grpc_options
 from client.parameter import parameters_to_weights, weights_to_parameters
-from client.utils import load_data, get_dry_sets
+from client.utils import load_data, get_dry_sets, load_partition
 
 
 import client.proto.service_pb2 as service_pb2
@@ -70,7 +71,7 @@ def start_training(weights, client):
     return fit_res
 
 
-def run():
+def run(index):
     with grpc.insecure_channel(
         "localhost:8000",
         options=get_grpc_options(),
@@ -87,19 +88,19 @@ def run():
 
         weights = parameters_to_weights(parameters)
 
-        dry_test = False
+        dry_test = False # code changed
 
         if dry_test:
-            trainset, testset, _ = load_data()
-        else:
             print("RUNNING DRY TEST")
             trainset, testset = get_dry_sets()
+        else:
+            trainset, testset = load_partition(index)
 
         device = device_config()
 
         client = SwitchMlClient(trainset, testset, device)
 
-        for i in range(1, 6):
+        for i in range(1,6):
             print("ROUND: ", i)
 
             fit_res = start_training(weights, client)
@@ -110,4 +111,5 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    i = random.randint(0,10)
+    run(i)

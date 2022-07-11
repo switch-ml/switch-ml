@@ -14,7 +14,7 @@ def fit_config():
     """
     config = {
         "batch_size": 8,
-        "local_epochs": 1,
+        "local_epochs": 2,
     }
     return config
 
@@ -23,7 +23,7 @@ def evaluate_config():
     """
     Conditions to test client model on client data
     """
-    val_steps = 5
+    val_steps = 10
     return {"val_steps": val_steps}
 
 

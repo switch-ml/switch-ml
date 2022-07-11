@@ -7,7 +7,7 @@ import redis
 import json
 
 import pickle
-
+import torch
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
@@ -30,14 +30,20 @@ r = redis.Redis(host="localhost", port=6379, db=0)
 r.flushdb()
 
 
-def load_and_evaluate(agg_weights=None):
+
+
+def load_and_evaluate(dry_test=False, agg_weights=None):
     global model
 
     model = utils.load_efficientnet(classes=10)
 
-    _, testset = utils.get_dry_sets()
-
-    valLoader = DataLoader(testset, batch_size=1)
+    if dry_test:
+        _, testset = utils.get_dry_sets()
+        valLoader = DataLoader(testset, batch_size=1)
+    else:
+        trainset,_,_ = utils.load_data()
+        testset = torch.utils.data.Subset(trainset, range(len(trainset) - 500, len(trainset)))
+        valLoader = DataLoader(testset, batch_size=16)
 
     weights = agg_weights if agg_weights else utils.get_model_params(model)
 
@@ -55,7 +61,7 @@ def client_weights(CLIENTS_DATA):
 
     print("Aggregated Metrics: ", average_metrics)
 
-    load_and_evaluate(average_weights)
+    load_and_evaluate(agg_weights=average_weights)
 
     return average_weights
 
@@ -64,17 +70,25 @@ def client_weights(CLIENTS_DATA):
     # params = service_pb2.Parameters(
     #     tensors=params.tensors, tensor_type=params.tensor_type
     # )
-    # return params
+    # return params   
 
 
 class WeightService(service_pb2_grpc.SwitchmlWeightsServiceServicer):
+    def __init__(self):
+        from queue import Queue
+
+        self.queue = Queue()
+        self.rounds = {}        
+
     def SendWeights(self, request, context):
 
         print(f"INCOMING WEIGHTS")
+        start = time.time()
 
         round = request.round
+        end = time.time()
 
-        print(f"ROUND-{round} WEIGHTS RECEIVED")
+        print(f"ROUND-{round} WEIGHTS RECEIVED IN :", end-start," Sec")
 
         client_id = request.client_id
 
@@ -91,43 +105,41 @@ class WeightService(service_pb2_grpc.SwitchmlWeightsServiceServicer):
             "weights": parameter.parameters_to_weights(fit_res.parameters),
         }
 
-        state = r.get(f"round-{round}")
+        self.queue.put(data)
 
+        state = r.get(f"round-{round}")
+            
         if state is None:
             state = {"clients": [], "status": False}
         else:
             state = pickle.loads(state)
 
-        state["clients"] += [data]
-
-        if len(state.get("clients")) > 1:
-            print(f"ROUND-{round} AGGREGATION STARTED")
-
-            weights = client_weights(state.get("clients"))
-
+        if self.queue.qsize() >= 2:
+            weights = client_weights([self.queue.get() for i in range(self.queue.qsize())])
+            self.rounds[f"round-{round}"] = weights
+            # self.rounds[f"round-{round}"] = True
             state["aggregated_weights"] = weights
 
             state["status"] = True
-
             r.set(f"round-{round}", pickle.dumps(state))
-        else:
-            r.set(f"round-{round}", pickle.dumps(state))
+            
+        
+        
+        while self.rounds.get(f"round-{round}") is None:
+            pass
 
-        params = None
-        while True:
-            state = pickle.loads(r.get(f"round-{round}"))
-            round_completed = state.get("status")
+        params = parameter.weights_to_parameters(self.rounds.get(f"round-{round}"))
+        # state = pickle.loads(r.get(f"round-{round}"))
+        # params = parameter.weights_to_parameters(state["clients"])
+        params = service_pb2.Parameters(
+            tensors=params.tensors, tensor_type=params.tensor_type
+        )
 
-            if round_completed:
-                state = pickle.loads(r.get(f"round-{round}"))
-                params = parameter.weights_to_parameters(state["aggregated_weights"])
-                params = service_pb2.Parameters(
-                    tensors=params.tensors, tensor_type=params.tensor_type
-                )
-
-                break
         print(f"ROUND-{round} AGGREGATION COMPLETED")
         return service_pb2.SendWeightsResponse(parameters=params)
+
+
+            
 
     def FetchWeights(self, request, context):
 
@@ -162,7 +174,7 @@ def serve():
 
     # Model Initialization
 
-    load_and_evaluate()
+    load_and_evaluate(dry_test=True)
 
     server.start()
     try:

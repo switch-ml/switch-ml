@@ -48,7 +48,7 @@ def metrics_average(results):
         val_loss.append(metrics.get("val_loss", 0))
         val_accs.append(metrics.get("val_accuracy", 0))
 
-    counts_total = sum(counts)
+    counts_total = len(results)
 
     return {
         "train_loss": sum(train_loss) / counts_total,
