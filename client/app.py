@@ -73,7 +73,7 @@ def start_training(weights, client):
 
 def run(index):
     with grpc.insecure_channel(
-        "localhost:8000",
+        "localhost:4000",
         options=get_grpc_options(),
     ) as channel:
 
@@ -88,7 +88,7 @@ def run(index):
 
         weights = parameters_to_weights(parameters)
 
-        dry_test = False # code changed
+        dry_test = False  # code changed
 
         if dry_test:
             print("RUNNING DRY TEST")
@@ -100,7 +100,7 @@ def run(index):
 
         client = SwitchMlClient(trainset, testset, device)
 
-        for i in range(1,6):
+        for i in range(1, 6):
             print("ROUND: ", i)
 
             fit_res = start_training(weights, client)
@@ -111,5 +111,5 @@ def run(index):
 
 
 if __name__ == "__main__":
-    i = random.randint(0,10)
+    i = random.randint(0, 10)
     run(i)

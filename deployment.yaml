@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: switchml-service
+spec:
+  type: ExternalName # Optional field (default)
+  externalName: 127.0.0.1 # within service cluster ip range
+  selector:
+    app: switchml
+  ports:
+    - protocol: "TCP"
+      port: 4000
+      targetPort: 4000
+      name: switchml
+    - protocol: "TCP"
+      port: 5000
+      targetPort: 5000
+      name: app
+
+  # type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: switchml
+spec:
+  selector:
+    matchLabels:
+      app: switchml
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: switchml
+    spec:
+      containers:
+        - name: switchml
+          image: switch-ml:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 4000
+
+        - name: ml-poc
+          image: ml-poc:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000

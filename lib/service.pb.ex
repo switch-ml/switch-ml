@@ -2,17 +2,20 @@ defmodule Switchml.SendWeightsRequest do
   @moduledoc false
   use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
 
-  defstruct [:fit_res, :eval_res]
+  defstruct [:fit_res, :round, :client_id]
 
   field(:fit_res, 2, type: Switchml.FitRes, json_name: "fitRes")
-  field(:eval_res, 3, type: Switchml.EvaluateRes, json_name: "evalRes")
+  field(:round, 3, type: :int64)
+  field(:client_id, 4, type: :string, json_name: "clientId")
 end
 
 defmodule Switchml.SendWeightsResponse do
   @moduledoc false
   use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
 
-  defstruct []
+  defstruct [:parameters]
+
+  field(:parameters, 1, type: Switchml.Parameters)
 end
 
 defmodule Switchml.FetchWeightsRequest do

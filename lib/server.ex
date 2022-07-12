@@ -6,11 +6,16 @@ defmodule Switchml.Server do
 
     {:ok, channel} = GRPC.Stub.connect("localhost:8000")
 
-    req = Switchml.SendWeightsRequest.new(fit_res: request.fit_res, eval_res: request.eval_res)
+    req =
+      Switchml.SendWeightsRequest.new(
+        fit_res: request.fit_res,
+        round: request.round,
+        client_id: request.client_id
+      )
 
     {:ok, response} = channel |> Switchml.SwitchmlWeightsService.Stub.send_weights(req)
 
-    Switchml.SendWeightsResponse.new()
+    Switchml.SendWeightsResponse.new(parameters: response.parameters)
   end
 
   def fetch_weights(request, _stream) do

@@ -1,0 +1,33 @@
+# Version of docker-compose
+version: "2.4"
+
+# Containers we are going to run
+services:
+  # Our Phoenix container
+  switch-ml:
+    image: switch-ml
+    # The build parameters for this container.
+    # Here we define that it should build from the current directory
+    build:
+      context: ./
+    ports:
+      # Mapping the port to make the Phoenix app accessible outside of the container
+      - "4000:4000"
+
+  ml-poc:
+    image: ml-poc
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    build:
+      context: ./
+      dockerfile: ./ml/Dockerfile
+    ports:
+      # Mapping the port to make the Phoenix app accessible outside of the container
+      - "8000:8000"
+
+  redis:
+    restart: always
+    image: redis:latest
+    ports:
+      - "6379:6379"
