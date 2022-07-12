@@ -2,6 +2,7 @@ import grpc
 import sys
 import os
 import random
+import time
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,29 +18,18 @@ import client.proto.service_pb2 as service_pb2
 import client.proto.service_pb2_grpc as service_pb2_grpc
 
 
-def send_weights(stub, train_results, client, round):
-    req = service_pb2.SendWeightsRequest(
-        fit_res=train_results, round=round, client_id=client.client_id
-    )
-    print(f"SENDING round-{round} TRAINED WEIGHTS TO SERVER")
+def send_weights(stub, fit_res, round):
+    req = service_pb2.SendWeightsRequest(fit_res=fit_res, round=f"{round}")
 
-    res = stub.SendWeights(req)
+    print(f"SENDING ROUND-{round} TRAINED WEIGHTS TO SERVER")
 
-    print(f"RECEIVED round-{round} AGGREGATED WEIGHTS FROM SERVER")
-
-    weights = parameters_to_weights(res.parameters)
-
-    return start_evaluation(client, weights)
+    return stub.SendWeights(req)
 
 
-def fetch_weights(stub):
-    req = service_pb2.FetchWeightsRequest()
+def fetch_weights(stub, type):
+    req = service_pb2.FetchWeightsRequest(request=type)
 
-    response = stub.FetchWeights(req)
-
-    print("RECEIVED INITIAL WEIGHTS")
-
-    return response.parameters
+    return stub.FetchWeights(req)
 
 
 def start_evaluation(client, weights):
@@ -48,9 +38,8 @@ def start_evaluation(client, weights):
     eval_loss, eval_count, eval_metrics = client.evaluate(weights, test_config)
 
     print("Eval Results: ", eval_metrics)
-    print("Eval Loss: ", eval_loss)
 
-    return weights
+    print("Eval Loss: ", eval_loss)
 
 
 def start_training(weights, client):
@@ -71,45 +60,62 @@ def start_training(weights, client):
     return fit_res
 
 
-def run(index):
+SERVER_ADDRESS = "localhost:4000"
+
+options = get_grpc_options()
+
+
+def run(client, rounds):
     with grpc.insecure_channel(
-        "localhost:4000",
-        options=get_grpc_options(),
+        SERVER_ADDRESS,
+        options=options,
     ) as channel:
 
         print("CONNECTED TO SERVER")
 
         stub = service_pb2_grpc.SwitchmlWeightsServiceStub(channel)
 
-        print("REQUESTING WEIGHTS")
+        print("REQUESTING INITIAL WEIGHTS")
 
         # SwitchMl Weights
-        parameters = fetch_weights(stub)
+        res = fetch_weights(stub, "initial")
 
-        weights = parameters_to_weights(parameters)
+        print(f"RECEIVED INITIAL WEIGHTS FROM SERVER")
 
-        dry_test = False  # code changed
+        weights = parameters_to_weights(res.parameters)
 
-        if dry_test:
-            print("RUNNING DRY TEST")
-            trainset, testset = get_dry_sets()
-        else:
-            trainset, testset = load_partition(index)
-
-        device = device_config()
-
-        client = SwitchMlClient(trainset, testset, device)
-
-        for i in range(1, 6):
+        for i in range(1, rounds + 1):
             print("ROUND: ", i)
 
             fit_res = start_training(weights, client)
 
-            weights = send_weights(stub, fit_res, client, i)
+            send_weights(stub, fit_res, i)
+
+            while True:
+                res = fetch_weights(stub, f"round-{i}")
+                if res.status == True:
+                    weights = parameters_to_weights(res.parameters)
+                    break
+                time.sleep(5)
+
+            start_evaluation(client, weights)
 
             print(f"ROUND {i} COMPLETED \n")
 
 
 if __name__ == "__main__":
-    i = random.randint(0, 10)
-    run(i)
+    index = random.randint(0, 10)
+
+    dry_test = True  # code changed
+
+    if dry_test:
+        print("RUNNING DRY TEST")
+        trainset, testset = get_dry_sets()
+    else:
+        trainset, testset = load_partition(index)
+
+    device = device_config()
+
+    client = SwitchMlClient(trainset, testset, device)
+
+    run(client, 4)

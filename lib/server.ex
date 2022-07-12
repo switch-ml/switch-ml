@@ -4,18 +4,19 @@ defmodule Switchml.Server do
   def send_weights(request, _stream) do
     IO.inspect("RECEIVED WEIGHTS...")
 
+    # , interceptors: [GRPC.Logger.Server]
+
     {:ok, channel} = GRPC.Stub.connect("localhost:8000")
 
     req =
       Switchml.SendWeightsRequest.new(
         fit_res: request.fit_res,
-        round: request.round,
-        client_id: request.client_id
+        round: request.round
       )
 
     {:ok, response} = channel |> Switchml.SwitchmlWeightsService.Stub.send_weights(req)
 
-    Switchml.SendWeightsResponse.new(parameters: response.parameters)
+    Switchml.SendWeightsResponse.new()
   end
 
   def fetch_weights(request, _stream) do
@@ -23,12 +24,12 @@ defmodule Switchml.Server do
 
     {:ok, channel} = GRPC.Stub.connect("localhost:8000")
 
-    req = Switchml.FetchWeightsRequest.new()
+    req = Switchml.FetchWeightsRequest.new(request: request.request)
 
     {:ok, response} = channel |> Switchml.SwitchmlWeightsService.Stub.fetch_weights(req)
 
     IO.inspect("RECEIVED WEIGHTS AND SENDING TO CLIENT")
 
-    Switchml.FetchWeightsResponse.new(parameters: response.parameters)
+    Switchml.FetchWeightsResponse.new(parameters: response.parameters, status: response.status)
   end
 end
