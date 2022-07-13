@@ -22,11 +22,4 @@ RUN mix deps.update --all
 # Compile the project
 RUN mix do compile
 
-# Adding persmissions
-RUN chmod +x /app/entrypoint.sh
-
-RUN chmod +x entrypoint.sh
-
-EXPOSE 4000
-
-CMD ["/app/entrypoint.sh"]
+CMD ["iex", "-S", "mix"]

@@ -6,7 +6,7 @@ defmodule Switchml.Server do
 
     # , interceptors: [GRPC.Logger.Server]
 
-    {:ok, channel} = GRPC.Stub.connect("localhost:8000")
+    {:ok, channel} = GRPC.Stub.connect("ml-poc:8000")
 
     req =
       Switchml.SendWeightsRequest.new(
@@ -22,7 +22,7 @@ defmodule Switchml.Server do
   def fetch_weights(request, _stream) do
     IO.inspect("FETCHING WEIGHTS...")
 
-    {:ok, channel} = GRPC.Stub.connect("localhost:8000")
+    {:ok, channel} = GRPC.Stub.connect("ml-poc:8000")
 
     req = Switchml.FetchWeightsRequest.new(request: request.request)
 

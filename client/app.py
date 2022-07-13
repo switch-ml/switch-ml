@@ -106,7 +106,7 @@ def run(client, rounds):
 if __name__ == "__main__":
     index = random.randint(0, 10)
 
-    dry_test = True  # code changed
+    dry_test = False  # code changed
 
     if dry_test:
         print("RUNNING DRY TEST")

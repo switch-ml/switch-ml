@@ -12,14 +12,13 @@ RUN apt-get install -y python3-pip python3-dev libgl1-mesa-glx locales locales-a
     && ln -s /usr/bin/python3 python \
     && pip3 install --upgrade pip
 
-WORKDIR /app
+WORKDIR /ml
 
 COPY ml/requirements.txt ./
 
 RUN pip3 install -r requirements.txt
 
 COPY ml/. .
-
 
 EXPOSE 8000
 

@@ -5,6 +5,7 @@ version: "2.4"
 services:
   # Our Phoenix container
   switch-ml:
+    tty: true
     image: switch-ml
     # The build parameters for this container.
     # Here we define that it should build from the current directory

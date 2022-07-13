@@ -26,7 +26,7 @@ model = None
 
 # CLIENTS_DATA = []
 
-r = redis.Redis(host="localhost", port=6379, db=0)
+r = redis.Redis(host="redis", port=6379, db=0)
 
 r.flushdb()
 
@@ -64,7 +64,7 @@ def client_weights(CLIENTS_DATA):
 
     print("Aggregated Metrics: ", average_metrics)
 
-    load_and_evaluate(True, agg_weights=average_weights)
+    load_and_evaluate(agg_weights=average_weights)
 
     return average_weights
 
