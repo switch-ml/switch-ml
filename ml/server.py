@@ -11,6 +11,7 @@ from proto.service_pb2_grpc import (
 from proto.service_pb2 import FetchWeightsResponse, SendWeightsResponse
 from .parameter import parameters_to_weights, weights_to_parameters
 from redis import Redis
+from signal import signal, SIGINT
 
 
 GRPC_MAX_MESSAGE_LENGTH = 536_870_912
@@ -29,102 +30,13 @@ redis.flushall()
 
 
 class SwitchmlServer(SwitchmlServiceServicer):
-    def __init__(self, server):
-        self.server = server
-        self.strategy = server.strategy
+    def __init__(self):
+        self.strategy = None
+        self.config = {}
 
-    def FetchWeights(self, request, context):
-
-        state = redis.get(self.strategy.name)
-
-        if state is None:
-            state = {}
-        else:
-            state = pickle.loads(state)
-
-        weights = state.get(
-            "weights", parameters_to_weights(self.strategy.initial_parameters)
-        )
-
-        params = weights_to_parameters(weights)
-
-        config = {
-            **self.server.config,
-            **self.strategy.on_fit_config_fn(1),
-            **self.strategy.on_evaluate_config_fn(1),
-        }
-
-        return FetchWeightsResponse(
-            parameters=params,
-            config=config,
-        )
-
-    def SendWeights(self, request, context):
-
-        round = request.round
-        self.server.push(round, request)
-
-        round_status = True
-
-        while round_status:
-            rounds = redis.get(self.strategy.name)
-            if rounds is None:
-                state = {}
-            else:
-                state = pickle.loads(rounds)
-            if "aggregated_weights" in state.get(round, {}):
-                round_status = False
-
-        config = {
-            **self.server.config,
-            **self.strategy.on_fit_config_fn(int(round.replace("round-", ""))),
-            **self.strategy.on_evaluate_config_fn(int(round.replace("round-", ""))),
-        }
-
-        params = weights_to_parameters(state.get(round)["aggregated_weights"])
-
-        yield SendWeightsResponse(
-            parameters=params,
-            config=config,
-        )
-
-
-class CustomServer:
-    def __init__(self, strategy, config) -> None:
-
-        self.rounds = {}
-        self.strategy = strategy
+    def initialize_self_values(self, strategy, config):
         self.config = config
-
-    def push(self, round, data):
-
-        clients = self.rounds.get(round, [])
-        clients.append(data)
-
-        self.rounds[round] = clients
-
-        if len(clients) >= self.config.get("min_available_clients", 2):
-
-            parameters_aggregated, metrics_aggregated = self.strategy.aggregate_fit(
-                clients
-            )
-
-            loss_aggregated, metrics_aggregated = self.strategy.aggregate_evaluate(
-                clients
-            )
-
-            print(f"{round} AGGREGATED EVAL LOSS:", loss_aggregated, "\n")
-
-            data = {
-                "clients": [self.parse_fit_eval(client) for client in clients],
-                "aggregated_weights": parameters_aggregated,
-            }
-
-            self.rounds[round] = data
-
-            redis.set(self.strategy.name, pickle.dumps(self.rounds))
-
-            self.rounds = {}
+        self.strategy = strategy
 
     def parse_fit_eval(self, request):
         fit_res = request.fit_res
@@ -144,7 +56,6 @@ class CustomServer:
 
         return {
             "fit_res": {
-                "weights": weights,
                 "num_examples": fit_examples,
                 "metrics": fit_metrics,
             },
@@ -153,10 +64,85 @@ class CustomServer:
                 "num_examples": eval_examples,
                 "metrics": eval_metrics,
             },
+            "weights": weights,
         }
 
+    def FetchWeights(self, request, context):
 
-def start_grpc_server(manager):
+        state = redis.get(f"{self.strategy.name}.aggregated_weights")
+        params = self.strategy.initial_parameters
+
+        if state:
+            print("SENDING AGGREGATING WEIGHTS")
+            weights = pickle.loads(state)
+            params = (
+                weights_to_parameters(weights)
+                if weights
+                else self.strategy.initial_parameters
+            )
+
+        config = {
+            **self.config,
+            **self.strategy.on_fit_config_fn(1),
+            **self.strategy.on_evaluate_config_fn(1),
+        }
+
+        return FetchWeightsResponse(
+            parameters=params,
+            config=config,
+        )
+
+    def SendWeights(self, request, context):
+
+        round = request.round
+
+        data = self.parse_fit_eval(request)
+
+        key = f"{self.strategy.name}.{round}.weights"
+
+        redis.rpush(key, pickle.dumps(data))
+
+        round_status = True
+
+        while round_status:
+            min_clients_available = self.config.get("min_available_clients", 2)
+            if redis.llen(key) < min_clients_available:
+                continue
+            round_status = False
+
+        weights = redis.lrange(key, 0, -1)
+        weights = [pickle.loads(val) for val in weights]
+
+        parameters_aggregated, metrics_aggregated = self.strategy.aggregate_fit(weights)
+
+        loss_aggregated, metrics_aggregated = self.strategy.aggregate_evaluate(weights)
+
+        print(f"{round} AGGREGATED EVAL LOSS:", loss_aggregated, "\n")
+
+        loss, metrics = self.strategy.evaluate(parameters=parameters_aggregated)
+
+        print("LOSS:", loss)
+
+        print("METRICS:", metrics, "\n")
+
+        config = {
+            **self.config,
+            **self.strategy.on_fit_config_fn(int(round.replace("round-", ""))),
+            **self.strategy.on_evaluate_config_fn(int(round.replace("round-", ""))),
+        }
+
+        redis.set(
+            f"{self.strategy.name}.aggregated_weights",
+            pickle.dumps(parameters_to_weights(parameters_aggregated)),
+        )
+
+        yield SendWeightsResponse(
+            parameters=parameters_aggregated,
+            config=config,
+        )
+
+
+def start_grpc_server():
     server_address = "[::]:8000"
     server = grpc.server(
         concurrent.futures.ThreadPoolExecutor(max_workers=10),
@@ -166,22 +152,18 @@ def start_grpc_server(manager):
         options=channel_options,
     )
 
-    servicer = SwitchmlServer(manager)
+    servicer = SwitchmlServer()
 
     add_SwitchmlServiceServicer_to_server(servicer, server)
 
     server.add_insecure_port(server_address)
 
-    server.start()
-
-    return server
+    return server, servicer
 
 
 def start_server(config, strategy):
 
-    cs = CustomServer(strategy, config)
-
-    grpc_server = start_grpc_server(cs)
+    grpc_server, servicer = start_grpc_server()
 
     # Evaluate with strategy initial parameters
     loss, metrics = strategy.evaluate(parameters=strategy.initial_parameters)
@@ -190,6 +172,16 @@ def start_server(config, strategy):
 
     print("METRICS:", metrics)
 
+    servicer.initialize_self_values(strategy, config)
+
+    grpc_server.start()
+
     print("SWITCHML LISTENING FOR CLIENTS")
+
+    def handle_sigterm(*_):
+        """Shutdown gracefully."""
+        grpc_server.stop(grace=1)
+
+    signal(SIGINT, handle_sigterm)
 
     grpc_server.wait_for_termination()
