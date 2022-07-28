@@ -94,19 +94,22 @@ class FedAvg:
 
         weights_results = [
             (
-                parameters_to_weights(client.fit_res.parameters),
-                client.fit_res.num_examples,
+                client.get("weights"),
+                client["fit_res"]["num_examples"],
             )
             for client in results
         ]
 
-        parameters_aggregated = aggregate(weights_results)
+        parameters_aggregated = weights_to_parameters(aggregate(weights_results))
 
         # Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated = {}
         if self.fit_metrics_aggregation_fn:
             fit_metrics = [
-                (client.fit_res.num_examples, client.fit_res.metrics)
+                (
+                    client["fit_res"]["num_examples"],
+                    client["fit_res"]["metrics"],
+                )
                 for client in results
             ]
             metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
@@ -122,14 +125,18 @@ class FedAvg:
         # Aggregate loss
 
         loss_aggregated = weighted_loss_avg(
-            [(client.eval_res.num_examples, client.eval_res.loss) for client in results]
+            [
+                (client["eval_res"]["num_examples"], client["eval_res"]["loss"])
+                for client in results
+            ]
         )
 
         # Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated = {}
         if self.evaluate_metrics_aggregation_fn:
             eval_metrics = [
-                (res.eval_res.num_examples, res.eval_res.metrics) for res in results
+                (client["eval_res"]["num_examples"], client["eval_res"]["metrics"])
+                for client in results
             ]
             metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
 
