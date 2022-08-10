@@ -45,7 +45,9 @@ def start_client(server_address, client):
 
     num_rounds = int(config.get("num_rounds"))
 
-    for round in range(1, num_rounds + 1):
+    current_round = int(config.get("round", 1))
+
+    for round in range(current_round, num_rounds + 1):
 
         agg_weights, fit_examples, fit_metrics = client.fit(weights, config)
 
