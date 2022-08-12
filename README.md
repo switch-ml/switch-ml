@@ -1,4 +1,4 @@
-# Switchml
+# Switch ML
 
 **TODO: Add description**
 
