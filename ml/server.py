@@ -114,7 +114,7 @@ class SwitchmlServer(SwitchmlServiceServicer):
         round_status = True
 
         round_int = int(round.replace("round-", ""))
-        end_time = datetime.now() + timedelta(seconds=10)
+        end_time = datetime.now() + timedelta(minutes=1)
 
         while round_status:
             clients_len = len(self.clients)
@@ -206,7 +206,7 @@ def start_server(config, strategy):
 
     print("SWITCHML LISTENING FOR CLIENTS")
 
-    end_time = datetime.now() + timedelta(minutes=1)
+    end_time = datetime.now() + timedelta(minutes=5)
 
     while True:
         if not servicer.status:
