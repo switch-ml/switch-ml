@@ -14,6 +14,7 @@ channel_options = [
     ("grpc.keepalive_timeout_ms", 5000),
     ("grpc.keepalive_permit_without_calls", True),
     ("grpc.http2.max_ping_strikes", 0),
+    ("grpc.enable_http_proxy", 0),
 ]
 
 
@@ -39,13 +40,13 @@ def start_client(server_address, client):
 
     res = service.FetchWeights()
 
-    weights = parameters_to_weights(res.parameters)
-
     config = res.config
 
     num_rounds = int(config.get("num_rounds"))
 
     current_round = int(config.get("round", 1))
+
+    weights = parameters_to_weights(res.parameters)
 
     for round in range(current_round, num_rounds + 1):
 
@@ -69,9 +70,18 @@ def start_client(server_address, client):
         eval_res = EvalRes(num_examples=eval_examples, metrics=eval_metrics, loss=loss)
 
         response = service.SendWeights(fit_res, eval_res, f"round-{round}")
-
-        for res in response:
-            config = res.config
+        try:
+            is_valid = False
+            for res in response:
+                config = res.config
+                weights = parameters_to_weights(res.parameters)
+                is_valid = True
+            if not is_valid:
+                print("SERVER STOPPED")
+                return
+        except Exception as e:
+            print("SERVER STOPPED", e)
+            return
 
     agg_weights, fit_examples, fit_metrics = client.fit(weights, config)
 

@@ -37,10 +37,12 @@ class SwitchmlServer(SwitchmlServiceServicer):
         self.clients = []
         self.current_round = 1
         self.status = False
+        self.server = None
 
-    def initialize_self_values(self, strategy, config):
+    def initialize_self_values(self, strategy, config, server):
         self.config = config
         self.strategy = strategy
+        self.server = server
 
     def add_client(self, ip):
         self.clients.append(ip)
@@ -80,15 +82,17 @@ class SwitchmlServer(SwitchmlServiceServicer):
         self.add_client(context.peer())
 
         state = redis.get(f"{self.strategy.name}.aggregated_weights")
-        weights = pickle.loads(state) if state else None
+        state = pickle.loads(state) if state else None
 
         params = self.strategy.initial_parameters
+        round = self.current_round
 
-        if weights:
-            params = weights_to_parameters(weights)
+        if state:
+            params = weights_to_parameters(state.get("weights"))
+            round = state.get("round", 1)
 
         config = {
-            "round": self.current_round,
+            "round": round,
             **self.config,
             **self.strategy.on_fit_config_fn(1),
             **self.strategy.on_evaluate_config_fn(1),
@@ -105,6 +109,8 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
         round = request.round
 
+        round_int = int(round.replace("round-", ""))
+
         data = self.parse_fit_eval(request)
 
         key = f"{self.strategy.name}.{round}.weights"
@@ -113,8 +119,7 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
         round_status = True
 
-        round_int = int(round.replace("round-", ""))
-        end_time = datetime.now() + timedelta(minutes=1)
+        end_time = datetime.now() + timedelta(seconds=10)
 
         while round_status:
             clients_len = len(self.clients)
@@ -127,7 +132,7 @@ class SwitchmlServer(SwitchmlServiceServicer):
                 current_time = datetime.now()
                 if current_time > end_time:
                     print("timeout")
-                    break
+                    return self.server.stop(grace=1)
                 continue
             round_status = False
 
@@ -200,7 +205,7 @@ def start_server(config, strategy):
 
     print("METRICS:", metrics)
 
-    servicer.initialize_self_values(strategy, config)
+    servicer.initialize_self_values(strategy, config, grpc_server)
 
     grpc_server.start()
 
@@ -220,4 +225,4 @@ def start_server(config, strategy):
 
     # signal(SIGINT, handle_sigterm)
 
-    # grpc_server.wait_for_termination()
+    grpc_server.wait_for_termination()
