@@ -2,6 +2,7 @@ import grpc
 import pickle
 
 import concurrent.futures
+from datetime import datetime, timedelta
 
 
 from proto.service_pb2_grpc import (
@@ -33,10 +34,17 @@ class SwitchmlServer(SwitchmlServiceServicer):
     def __init__(self):
         self.strategy = None
         self.config = {}
+        self.clients = []
+        self.current_round = 1
+        self.status = False
 
     def initialize_self_values(self, strategy, config):
         self.config = config
         self.strategy = strategy
+
+    def add_client(self, ip):
+        self.clients.append(ip)
+        self.clients = list(set(self.clients))
 
     def parse_fit_eval(self, request):
         fit_res = request.fit_res
@@ -69,19 +77,18 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
     def FetchWeights(self, request, context):
 
+        self.add_client(context.peer())
+
         state = redis.get(f"{self.strategy.name}.aggregated_weights")
+        weights = pickle.loads(state) if state else None
+
         params = self.strategy.initial_parameters
 
-        if state:
-            print("SENDING AGGREGATING WEIGHTS")
-            weights = pickle.loads(state)
-            params = (
-                weights_to_parameters(weights)
-                if weights
-                else self.strategy.initial_parameters
-            )
+        if weights:
+            params = weights_to_parameters(weights)
 
         config = {
+            "round": self.current_round,
             **self.config,
             **self.strategy.on_fit_config_fn(1),
             **self.strategy.on_evaluate_config_fn(1),
@@ -94,6 +101,8 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
     def SendWeights(self, request, context):
 
+        self.add_client(context.peer())
+
         round = request.round
 
         data = self.parse_fit_eval(request)
@@ -104,14 +113,28 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
         round_status = True
 
+        round_int = int(round.replace("round-", ""))
+        end_time = datetime.now() + timedelta(minutes=1)
+
         while round_status:
+            clients_len = len(self.clients)
             min_clients_available = self.config.get("min_available_clients", 2)
+
+            if clients_len > min_clients_available:
+                min_clients_available = clients_len
+
             if redis.llen(key) < min_clients_available:
+                current_time = datetime.now()
+                if current_time > end_time:
+                    print("timeout")
+                    break
                 continue
             round_status = False
 
         weights = redis.lrange(key, 0, -1)
         weights = [pickle.loads(val) for val in weights]
+
+        self.status = True
 
         parameters_aggregated, metrics_aggregated = self.strategy.aggregate_fit(weights)
 
@@ -127,8 +150,8 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
         config = {
             **self.config,
-            **self.strategy.on_fit_config_fn(int(round.replace("round-", ""))),
-            **self.strategy.on_evaluate_config_fn(int(round.replace("round-", ""))),
+            **self.strategy.on_fit_config_fn(round_int),
+            **self.strategy.on_evaluate_config_fn(round_int),
         }
 
         redis.set(
@@ -136,6 +159,11 @@ class SwitchmlServer(SwitchmlServiceServicer):
             pickle.dumps(parameters_to_weights(parameters_aggregated)),
         )
 
+        self.current_round = round_int
+
+        if round_int == self.config.get("num_rounds"):
+            self.clients = []
+            self.status = False
         yield SendWeightsResponse(
             parameters=parameters_aggregated,
             config=config,
@@ -178,10 +206,18 @@ def start_server(config, strategy):
 
     print("SWITCHML LISTENING FOR CLIENTS")
 
-    def handle_sigterm(*_):
-        """Shutdown gracefully."""
-        grpc_server.stop(grace=1)
+    end_time = datetime.now() + timedelta(minutes=5)
 
-    signal(SIGINT, handle_sigterm)
+    while True:
+        if not servicer.status:
+            current_time = datetime.now()
+            if current_time > end_time:
+                break
+    grpc_server.stop(grace=1)
+    # def handle_sigterm(*_):
+    #     """Shutdown gracefully."""
+    #     grpc_server.stop(grace=1)
 
-    grpc_server.wait_for_termination()
+    # signal(SIGINT, handle_sigterm)
+
+    # grpc_server.wait_for_termination()
