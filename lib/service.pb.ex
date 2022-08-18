@@ -3,19 +3,37 @@ defmodule Switchml.SendWeightsRequest do
   use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
 
   field(:fit_res, 1, type: Switchml.FitRes, json_name: "fitRes")
-  field(:round, 2, type: :string)
+  field(:eval_res, 2, type: Switchml.EvalRes, json_name: "evalRes")
+  field(:round, 3, type: :string)
+end
+
+defmodule Switchml.SendWeightsResponse.ConfigEntry do
+  @moduledoc false
+  use Protobuf, map: true, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
+
+  field(:key, 1, type: :string)
+  field(:value, 2, type: :float)
 end
 
 defmodule Switchml.SendWeightsResponse do
   @moduledoc false
   use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
+
+  field(:parameters, 1, type: Switchml.Parameters)
+  field(:config, 3, repeated: true, type: Switchml.SendWeightsResponse.ConfigEntry, map: true)
 end
 
 defmodule Switchml.FetchWeightsRequest do
   @moduledoc false
   use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
+end
 
-  field(:request, 1, type: :string)
+defmodule Switchml.FetchWeightsResponse.ConfigEntry do
+  @moduledoc false
+  use Protobuf, map: true, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
+
+  field(:key, 1, type: :string)
+  field(:value, 2, type: :float)
 end
 
 defmodule Switchml.FetchWeightsResponse do
@@ -23,7 +41,7 @@ defmodule Switchml.FetchWeightsResponse do
   use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
 
   field(:parameters, 1, type: Switchml.Parameters)
-  field(:status, 2, type: :bool)
+  field(:config, 3, repeated: true, type: Switchml.FetchWeightsResponse.ConfigEntry, map: true)
 end
 
 defmodule Switchml.Parameters do
@@ -51,16 +69,33 @@ defmodule Switchml.FitRes do
   field(:metrics, 4, repeated: true, type: Switchml.FitRes.MetricsEntry, map: true)
 end
 
-defmodule Switchml.SwitchmlWeightsService.Service do
+defmodule Switchml.EvalRes.MetricsEntry do
   @moduledoc false
-  use GRPC.Service, name: "switchml.SwitchmlWeightsService", protoc_gen_elixir_version: "0.10.0"
+  use Protobuf, map: true, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
 
-  rpc(:SendWeights, Switchml.SendWeightsRequest, Switchml.SendWeightsResponse)
+  field(:key, 1, type: :string)
+  field(:value, 2, type: :float)
+end
+
+defmodule Switchml.EvalRes do
+  @moduledoc false
+  use Protobuf, protoc_gen_elixir_version: "0.10.0", syntax: :proto3
+
+  field(:loss, 1, type: :float)
+  field(:num_examples, 2, type: :int64, json_name: "numExamples")
+  field(:metrics, 3, repeated: true, type: Switchml.EvalRes.MetricsEntry, map: true)
+end
+
+defmodule Switchml.SwitchmlService.Service do
+  @moduledoc false
+  use GRPC.Service, name: "switchml.SwitchmlService", protoc_gen_elixir_version: "0.10.0"
+
+  rpc(:SendWeights, Switchml.SendWeightsRequest, stream(Switchml.SendWeightsResponse))
 
   rpc(:FetchWeights, Switchml.FetchWeightsRequest, Switchml.FetchWeightsResponse)
 end
 
-defmodule Switchml.SwitchmlWeightsService.Stub do
+defmodule Switchml.SwitchmlService.Stub do
   @moduledoc false
-  use GRPC.Stub, service: Switchml.SwitchmlWeightsService.Service
+  use GRPC.Stub, service: Switchml.SwitchmlService.Service
 end

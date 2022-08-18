@@ -25,14 +25,16 @@ switchml-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
-venv/
+
+venv
 
 *.pyc
 
-.vscode
-
 dataset
 
+.vscode
+
 adv_example/
+
 
 

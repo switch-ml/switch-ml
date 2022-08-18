@@ -7,7 +7,7 @@ from grpc_tools import protoc
 GRPC_PATH = grpc_tools.__path__[0]
 
 DIR_PATH = path.dirname(path.realpath(__file__))
-OUT_PATH = path.normpath(f"{DIR_PATH}/../ml")
+OUT_PATH = path.normpath(f"{DIR_PATH}")
 PROTO_FILES = glob.glob(f"{DIR_PATH}/*.proto")
 
 

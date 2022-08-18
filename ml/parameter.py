@@ -2,17 +2,16 @@ from io import BytesIO
 from typing import cast
 
 import numpy as np
+from proto.service_pb2 import Parameters
 
-from .typings import Parameters, Weights
 
-
-def weights_to_parameters(weights: Weights) -> Parameters:
+def weights_to_parameters(weights):
     """Convert NumPy weights to parameters object."""
     tensors = [ndarray_to_bytes(ndarray) for ndarray in weights]
     return Parameters(tensors=tensors, tensor_type="numpy.ndarray")
 
 
-def parameters_to_weights(parameters: Parameters) -> Weights:
+def parameters_to_weights(parameters):
     """Convert parameters object to NumPy weights."""
     return [bytes_to_ndarray(tensor) for tensor in parameters.tensors]
 

@@ -20,6 +20,6 @@ RUN pip3 install -r requirements.txt
 
 COPY ml/. .
 
-EXPOSE 8000
+COPY proto/. ./proto
 
-CMD ["python", "app.py"]
+EXPOSE 8000

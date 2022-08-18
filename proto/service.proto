@@ -2,26 +2,29 @@ syntax = "proto3";
 
 package switchml;
 
-service SwitchmlWeightsService {
-    rpc SendWeights (SendWeightsRequest) returns (SendWeightsResponse) {}
+service SwitchmlService {
+    rpc SendWeights (SendWeightsRequest) returns (stream SendWeightsResponse) {}
     rpc FetchWeights (FetchWeightsRequest) returns (FetchWeightsResponse) {}
 }
 
 message SendWeightsRequest {
     FitRes fit_res = 1;
-    string round = 2;
+    EvalRes eval_res =2;
+    string round = 3;
 }
 
 message SendWeightsResponse {
+    Parameters parameters = 1;
+    map<string, float> config = 3;
 }
 
 message FetchWeightsRequest {
-    string request = 1;
+   
 }
 
 message FetchWeightsResponse {
     Parameters parameters = 1;
-    bool status =2;
+    map<string, float> config = 3;
 }
 
 message Parameters {
@@ -35,3 +38,8 @@ message FitRes {
     map<string, float> metrics = 4;
 }
 
+message EvalRes {
+    float loss = 1;
+    int64 num_examples = 2;
+    map<string, float> metrics = 3;
+}

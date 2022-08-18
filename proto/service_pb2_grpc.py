@@ -5,7 +5,7 @@ import grpc
 from . import service_pb2 as service__pb2
 
 
-class SwitchmlWeightsServiceStub(object):
+class SwitchmlServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -14,19 +14,19 @@ class SwitchmlWeightsServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.SendWeights = channel.unary_unary(
-            "/switchml.SwitchmlWeightsService/SendWeights",
+        self.SendWeights = channel.unary_stream(
+            "/switchml.SwitchmlService/SendWeights",
             request_serializer=service__pb2.SendWeightsRequest.SerializeToString,
             response_deserializer=service__pb2.SendWeightsResponse.FromString,
         )
         self.FetchWeights = channel.unary_unary(
-            "/switchml.SwitchmlWeightsService/FetchWeights",
+            "/switchml.SwitchmlService/FetchWeights",
             request_serializer=service__pb2.FetchWeightsRequest.SerializeToString,
             response_deserializer=service__pb2.FetchWeightsResponse.FromString,
         )
 
 
-class SwitchmlWeightsServiceServicer(object):
+class SwitchmlServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SendWeights(self, request, context):
@@ -42,9 +42,9 @@ class SwitchmlWeightsServiceServicer(object):
         raise NotImplementedError("Method not implemented!")
 
 
-def add_SwitchmlWeightsServiceServicer_to_server(servicer, server):
+def add_SwitchmlServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "SendWeights": grpc.unary_unary_rpc_method_handler(
+        "SendWeights": grpc.unary_stream_rpc_method_handler(
             servicer.SendWeights,
             request_deserializer=service__pb2.SendWeightsRequest.FromString,
             response_serializer=service__pb2.SendWeightsResponse.SerializeToString,
@@ -56,13 +56,13 @@ def add_SwitchmlWeightsServiceServicer_to_server(servicer, server):
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "switchml.SwitchmlWeightsService", rpc_method_handlers
+        "switchml.SwitchmlService", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
 
 
 # This class is part of an EXPERIMENTAL API.
-class SwitchmlWeightsService(object):
+class SwitchmlService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -78,10 +78,10 @@ class SwitchmlWeightsService(object):
         timeout=None,
         metadata=None,
     ):
-        return grpc.experimental.unary_unary(
+        return grpc.experimental.unary_stream(
             request,
             target,
-            "/switchml.SwitchmlWeightsService/SendWeights",
+            "/switchml.SwitchmlService/SendWeights",
             service__pb2.SendWeightsRequest.SerializeToString,
             service__pb2.SendWeightsResponse.FromString,
             options,
@@ -110,7 +110,7 @@ class SwitchmlWeightsService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/switchml.SwitchmlWeightsService/FetchWeights",
+            "/switchml.SwitchmlService/FetchWeights",
             service__pb2.FetchWeightsRequest.SerializeToString,
             service__pb2.FetchWeightsResponse.FromString,
             options,

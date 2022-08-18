@@ -1,89 +1,143 @@
-from io import BytesIO
-import json
-import ast
-from typing import cast
-
-import numpy as np
+from .parameter import weights_to_parameters, parameters_to_weights
 
 from functools import reduce
 
-from ml.parameter import parameters_to_weights, weights_to_parameters
+import numpy as np
 
 
 def aggregate(results):
     """Compute weighted average."""
     # Calculate the total number of examples used during training
-    count_total = sum([count for _, count in results])
+    num_examples_total = sum([num_examples for _, num_examples in results])
 
     # Create a list of weights, each multiplied by the related number of examples
     weighted_weights = [
-        [layer * count for layer in weights] for weights, count in results
+        [layer * num_examples for layer in weights] for weights, num_examples in results
     ]
 
-    weights_prime = []
-
-    for layer_updates in zip(*weighted_weights):
-        val = reduce(np.add, layer_updates)
-        weights_prime.append(val / count_total)
-
     # Compute average weights of each layer
+    weights_prime = [
+        reduce(np.add, layer_updates) / num_examples_total
+        for layer_updates in zip(*weighted_weights)
+    ]
     return weights_prime
 
 
-def metrics_average(results):
-
-    train_accs = []
-    train_loss = []
-    val_loss = []
-    val_accs = []
-    counts = []
-
-    for client in results:
-        metrics = client[0]
-        count = client[1]
-
-        counts.append(count)
-        train_accs.append(metrics.get("train_accuracy", 0))
-        train_loss.append(metrics.get("train_loss", 0))
-        val_loss.append(metrics.get("val_loss", 0))
-        val_accs.append(metrics.get("val_accuracy", 0))
-
-    counts_total = len(results)
-
-    return {
-        "train_loss": sum(train_loss) / counts_total,
-        "train_accuracy": sum(train_accs) / counts_total,
-        "val_loss": sum(val_loss) / counts_total,
-        "val_accuracy": sum(val_accs) / counts_total,
-        "counts": sum(counts) / len(counts),
-    }
+def weighted_loss_avg(results):
+    """Aggregate evaluation results obtained from multiple clients."""
+    num_total_evaluation_examples = sum([num_examples for num_examples, _ in results])
+    weighted_losses = [num_examples * loss for num_examples, loss in results]
+    return sum(weighted_losses) / num_total_evaluation_examples
 
 
-def federated_average(clients_data, fit_metrics_aggregation_fn=None):
+class FedAvg:
+    """Configurable FedAvg strategy implementation."""
 
-    weights_results = []
-    client_metrics = []
-    metrics_aggregated = {}
+    # pylint: disable=too-many-arguments,too-many-instance-attributes
+    def __init__(
+        self,
+        fraction_fit: float = 1.0,
+        fraction_eval: float = 1.0,
+        min_fit_clients: int = 2,
+        min_eval_clients: int = 2,
+        min_available_clients: int = 2,
+        eval_fn=None,
+        on_fit_config_fn=None,
+        on_evaluate_config_fn=None,
+        accept_failures: bool = True,
+        initial_parameters=None,
+        fit_metrics_aggregation_fn=None,
+        evaluate_metrics_aggregation_fn=None,
+    ):
 
-    # Iteratign clients weights
-    for client in clients_data:
+        super().__init__()
 
-        weights = client.get("weights")
+        self.fraction_fit = fraction_fit
+        self.fraction_eval = fraction_eval
+        self.min_fit_clients = min_fit_clients
+        self.min_eval_clients = min_eval_clients
+        self.min_available_clients = min_available_clients
+        self.eval_fn = eval_fn
+        self.on_fit_config_fn = on_fit_config_fn
+        self.on_evaluate_config_fn = on_evaluate_config_fn
+        self.accept_failures = accept_failures
+        self.initial_parameters = initial_parameters
+        self.fit_metrics_aggregation_fn = fit_metrics_aggregation_fn
+        self.evaluate_metrics_aggregation_fn = evaluate_metrics_aggregation_fn
+        self.name = "fedaverage"
 
-        count = client.get("num_examples")
+    def initialize_parameters(self):
+        """Initialize global model parameters."""
+        initial_parameters = self.initial_parameters
+        self.initial_parameters = None  # Don't keep initial parameters in memory
+        return initial_parameters
 
-        train_metrics = client.get("metrics")
+    def evaluate(self, parameters):
+        """Evaluate model parameters using an evaluation function."""
+        if self.eval_fn is None:
+            # No evaluation function provided
+            return None
+        weights = parameters_to_weights(parameters)
+        eval_res = self.eval_fn(weights)
+        if eval_res is None:
+            return None
+        loss, metrics = eval_res
+        return loss, metrics
 
-        weights_results.append((weights, count))
+    def aggregate_fit(
+        self,
+        results,
+    ):
+        """Aggregate fit results using weighted average."""
 
-        client_metrics.append((train_metrics, count))
+        # Convert results
 
-    # Aggregating all weights
-    agg_weights = aggregate(weights_results)
+        weights_results = [
+            (
+                client.get("weights"),
+                client["fit_res"]["num_examples"],
+            )
+            for client in results
+        ]
 
-    # Aggregate custom metrics if aggregation fn was provided
-    if fit_metrics_aggregation_fn:
-        print("AGGREGATING EVALUATION METRICS")
-        metrics_aggregated = fit_metrics_aggregation_fn(client_metrics)
+        parameters_aggregated = weights_to_parameters(aggregate(weights_results))
 
-    return agg_weights, metrics_aggregated
+        # Aggregate custom metrics if aggregation fn was provided
+        metrics_aggregated = {}
+        if self.fit_metrics_aggregation_fn:
+            fit_metrics = [
+                (
+                    client["fit_res"]["num_examples"],
+                    client["fit_res"]["metrics"],
+                )
+                for client in results
+            ]
+            metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
+
+        return parameters_aggregated, metrics_aggregated
+
+    def aggregate_evaluate(
+        self,
+        results,
+    ):
+        """Aggregate evaluation losses using weighted average."""
+
+        # Aggregate loss
+
+        loss_aggregated = weighted_loss_avg(
+            [
+                (client["eval_res"]["num_examples"], client["eval_res"]["loss"])
+                for client in results
+            ]
+        )
+
+        # Aggregate custom metrics if aggregation fn was provided
+        metrics_aggregated = {}
+        if self.evaluate_metrics_aggregation_fn:
+            eval_metrics = [
+                (client["eval_res"]["num_examples"], client["eval_res"]["metrics"])
+                for client in results
+            ]
+            metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
+
+        return loss_aggregated, metrics_aggregated
