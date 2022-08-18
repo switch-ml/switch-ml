@@ -43,4 +43,3 @@ message EvalRes {
     int64 num_examples = 2;
     map<string, float> metrics = 3;
 }
-

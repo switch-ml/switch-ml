@@ -105,8 +105,6 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
     def SendWeights(self, request, context):
 
-        self.add_client(context.peer())
-
         round = request.round
 
         round_int = int(round.replace("round-", ""))
@@ -119,7 +117,7 @@ class SwitchmlServer(SwitchmlServiceServicer):
 
         round_status = True
 
-        end_time = datetime.now() + timedelta(seconds=10)
+        end_time = datetime.now() + timedelta(seconds=60)
 
         while round_status:
             clients_len = len(self.clients)
