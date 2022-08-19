@@ -1,13 +1,12 @@
-import utility as utils
-import sys
-sys.path.insert(0, '/home/ubuntu/switchml')
+import utils
+
 from ml.server import start_server
 from ml.strategy import FedAvg
 from ml.parameter import weights_to_parameters
-import tensorflow as tf
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-  tf.config.experimental.set_memory_growth(gpu, True)
+
+import torch
+from torch.utils.data import DataLoader
+from collections import OrderedDict
 
 
 def fit_config(rnd: int):
@@ -29,28 +28,25 @@ def get_eval_fn(model, toy: bool):
     """Return an evaluation function for server-side evaluation."""
 
     # Load data and model here to avoid the overhead of doing it in `evaluate` itself
-    trainset,testset, _ = utils.load_data()
+    trainset, _, _ = utils.load_data()
 
     n_train = len(trainset)
     if toy:
         # use only 10 samples as validation set
-        valLoader, trainLoader = utils.load_partition(5)
-        # valset = torch.utils.data.Subset(trainset, range(n_train - 10, n_train))
+        valset = torch.utils.data.Subset(trainset, range(n_train - 10, n_train))
     else:
-        trainLoader,valLoader,_ = utils.load_data()
         # Use the last 5k training examples as a validation set
-        # valset = torch.utils.data.Subset(trainset, range(n_train - 5000, n_train))
+        valset = torch.utils.data.Subset(trainset, range(n_train - 5000, n_train))
 
-    
+    valLoader = DataLoader(valset, batch_size=16)
     # The `evaluate` function will be called after every round
     def evaluate(
         weights,
     ):
         # Update model with the latest parameters
-        model.set_weights(weights)
-        # params_dict = zip(model.state_dict().keys(), weights)
-        # state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-        # model.load_state_dict(state_dict, strict=True)
+        params_dict = zip(model.state_dict().keys(), weights)
+        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+        model.load_state_dict(state_dict, strict=True)
 
         loss, accuracy = utils.test(model, valLoader)
         return loss, {"accuracy": accuracy}
@@ -58,9 +54,9 @@ def get_eval_fn(model, toy: bool):
     return evaluate
 
 
-model = utils.get_model()
+model = utils.load_efficientnet(classes=10)
 
-model_weights = model.get_weights()
+model_weights = [val.cpu().numpy() for _, val in model.state_dict().items()]
 
 strategy = FedAvg(
     fraction_fit=0.2,

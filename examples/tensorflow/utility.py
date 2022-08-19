@@ -3,7 +3,9 @@ from sklearn.model_selection import train_test_split
 import os 
 from tensorflow import keras
 import random
-
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+  tf.config.experimental.set_memory_growth(gpu, True)
 
 def get_model():
 	model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
