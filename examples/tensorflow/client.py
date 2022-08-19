@@ -58,7 +58,8 @@ class CifarClient:
         steps: int = int(config["val_steps"])
         # Evaluate global model parameters on the local test data and return results
         loss, accuracy = utility.test(model, testloader, steps, self.device)
-        return float(loss), len(self.testset), {"accuracy": float(accuracy)}
+        # print("Test Accuracy: {}".format(accuracy))
+        return float(loss[0]), len(self.testset), {"accuracy": float(accuracy[0])}
 
 
 def main(toy):

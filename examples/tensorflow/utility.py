@@ -43,10 +43,10 @@ def train(net, trainloader, valloader, epochs, device):
 	X_train,y_train =  trainloader
 	history =  net.fit(X_train,y_train,epochs =1,batch_size = 16,validation_data = valloader)
 	results = {
-	"train_loss": history.history['loss'],
-	"train_accuracy": history.history['sparse_categorical_accuracy'],
-	"val_loss": history.history['val_loss'],
-	"val_accuracy": history.history['val_sparse_categorical_accuracy'],
+	"train_loss": history.history['loss'][0],
+	"train_accuracy": history.history['sparse_categorical_accuracy'][0],
+	"val_loss": history.history['val_loss'][0],
+	"val_accuracy": history.history['val_sparse_categorical_accuracy'][0],
 	}
 	return results
 
