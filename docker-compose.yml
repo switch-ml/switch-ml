@@ -16,6 +16,7 @@ services:
       - "4000:4000"
 
   ml-poc:
+    tty: true
     image: ml-poc
     runtime: nvidia
     environment:
@@ -31,4 +32,4 @@ services:
     restart: always
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "63790:63790"

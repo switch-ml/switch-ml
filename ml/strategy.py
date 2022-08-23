@@ -5,6 +5,26 @@ from functools import reduce
 import numpy as np
 
 
+class Strategy(ABC):
+    """Abstract base class for server strategy implementations."""
+
+    @abstractmethod
+    def initialize_parameters(self):
+        """Initialize the (global) model parameters."""
+
+    @abstractmethod
+    def aggregate_fit(self, results):
+        """Aggregate training results."""
+
+    @abstractmethod
+    def aggregate_evaluate(self, results):
+        """Aggregate evaluation results."""
+
+    @abstractmethod
+    def evaluate(self, parameters):
+        """Evaluate the current model parameters."""
+
+
 def aggregate(results):
     """Compute weighted average."""
     # Calculate the total number of examples used during training
