@@ -69,4 +69,4 @@ strategy = FedAvg(
     on_evaluate_config_fn=evaluate_config,
     initial_parameters=weights_to_parameters(model_weights),
 )
-start_server({"num_rounds": 4, "timeout": 10, "min_available_clients": 2}, strategy)
+start_server({"num_rounds": 20, "timeout": 10, "min_available_clients": 2}, strategy)

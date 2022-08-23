@@ -27,7 +27,7 @@ channel_options = [
 ]
 
 redis = Redis(host="localhost", port=6379, db=0)
-redis.flushall()
+# redis.flushall()
 
 
 class SwitchmlServer(SwitchmlServiceServicer):
