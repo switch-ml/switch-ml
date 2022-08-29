@@ -1,123 +1,127 @@
-import torch
-from torch import nn
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
-import torch.nn.functional as F
-import torch.optim as optim
+import numpy as np
+import mxnet as mx
+from mxnet import nd
+from mxnet import gluon
+from mxnet.gluon import nn
+from mxnet import autograd as ag
+import mxnet.ndarray as F
 
-
-class Net(nn.Module):
-    #This defines the structure of the NN.
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()  #Dropout
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        #Convolutional Layer/Pooling Layer/Activation
-        x = F.relu(F.max_pool2d(self.conv1(x), 2)) 
-        #Convolutional Layer/Dropout/Pooling Layer/Activation
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        #Fully Connected Layer/Activation
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        #Fully Connected Layer/Activation
-        x = self.fc2(x)
-        #Softmax gets probabilities. 
-        return F.log_softmax(x, dim=1)
 
 def get_model():
-    net = Net()
-    return net
+	net = nn.Sequential()
+	net.add(nn.Dense(256, activation="relu"))
+	net.add(nn.Dense(64, activation="relu"))
+	net.add(nn.Dense(10))
+	net.collect_params().initialize()
+	return net
 
 def load_data():
-    """Load CIFAR-10 (training and test set)."""
-    transform =transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.1307,), (0.3081,))
-                   ])
-    trainset = MNIST("./dataset", train=True, download=True, transform=transform)
-    testset = MNIST("./dataset", train=False, download=True, transform=transform)
+	print("Download Dataset")
+	mnist = mx.test_utils.get_mnist()
+	batch_size = 100
+	train_data = mx.io.NDArrayIter(
+	mnist["train_data"], mnist["train_label"], batch_size, shuffle=True
+	)
+	val_data = mx.io.NDArrayIter(mnist["test_data"], mnist["test_label"], batch_size)
 
-    num_examples = {"trainset": len(trainset), "testset": len(testset)}
-    return trainset, testset, num_examples
+	num_examples = {"trainset": len(mnist["train_label"]), "testset": len(mnist["test_label"])}
+	return train_data, val_data, num_examples
+
 
 def load_partition(idx: int):
-    """Load 1/10th of the training and test data to simulate a partition."""
-    assert idx in range(10)
-    trainset, testset, num_examples = load_data()
-    n_train = int(num_examples["trainset"] / 10)
-    n_test = int(num_examples["testset"] / 10)
-
-    train_parition = torch.utils.data.Subset(
-        trainset, range(idx * n_train, (idx + 1) * n_train)
-    )
-    test_parition = torch.utils.data.Subset(
-        testset, range(idx * n_test, (idx + 1) * n_test)
-    )
-    return (train_parition, test_parition)
-
-def train(net, trainloader, valloader, epochs, device: str = "cpu"):
-    """Train the network on the training set."""
-    print("Starting training...")
-    net.to(device)  # move model to GPU if available
-    criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(
-        net.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4
-    )
-    net.train()
-    for _ in range(epochs):
-        for images, labels in trainloader:
-            images, labels = images.to(device), labels.to(device)
-            optimizer.zero_grad()
-            loss = criterion(net(images), labels)
-            loss.backward()
-            optimizer.step()
-
-    net.to("cpu")  # move model back to CPU
-
-    train_loss, train_acc = test(net, trainloader)
-    val_loss, val_acc = test(net, valloader)
-
-    results = {
-        "train_loss": train_loss,
-        "train_accuracy": train_acc,
-        "val_loss": val_loss,
-        "val_accuracy": val_acc,
-    }
-    return results
+	"""Load 1/10th of the training and test data to simulate a partition."""
+	assert idx in range(10)
+	print("Download Dataset")
+	mnist = mx.test_utils.get_mnist()
+	batch_size = 100
+	train_data_size = round(len(mnist['train_data'])/idx)
+	##Validation on Test Data Size of 5% data
+	test_data_size = round(len(mnist['test_data'])/95)
+	train_indices = list(mx.gluon.data.RandomSampler(train_data_size))
+	test_indices = list(mx.gluon.data.RandomSampler(test_data_size))
+	train_X = mnist['train_data'][train_indices]
+	train_y = mnist['train_label'][train_indices]
+	test_X = mnist['test_data'][test_indices]
+	test_y = mnist['test_label'][test_indices]
+	test_parition = mx.io.NDArrayIter(
+				test_X, test_y, batch_size, shuffle=True
+				)
+	train_parition = mx.io.NDArrayIter(
+				train_X, train_y, batch_size, shuffle=True
+				)
+	return (train_parition, test_parition)
 
 
-def test(net, testloader, steps: int = None, device: str = "cpu"):
-    """Validate the network on the entire test set."""
-    print("Starting evalutation...")
-    net.to(device)  # move model to GPU if available
-    criterion = torch.nn.CrossEntropyLoss()
-    correct, total, loss = 0, 0, 0.0
-    net.eval()
-    with torch.no_grad():
-        for batch_idx, (images, labels) in enumerate(testloader):
-            images, labels = images.to(device), labels.to(device)
-            outputs = net(images)
-            loss += criterion(outputs, labels).item()
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            if steps is not None and batch_idx == steps:
-                break
-    if steps is None:
-        loss /= len(testloader.dataset)
-    else:
-        loss /= total
-    accuracy = correct / total
-    net.to("cpu")  # move model back to CPU
-    return loss, accuracy
+def train(net, trainloader, valloader, epoch, device: str = "cpu"):
+	trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": 0.03})
+	trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": 0.01})
+	accuracy_metric = mx.metric.Accuracy()
+	loss_metric = mx.metric.CrossEntropy()
+	metrics = mx.metric.CompositeEvalMetric()
+	for child_metric in [accuracy_metric, loss_metric]:
+		metrics.add(child_metric)
+	softmax_cross_entropy_loss = gluon.loss.SoftmaxCrossEntropyLoss()
+	for i in range(epoch):
+		trainloader.reset()
+		num_examples = 0
+		for batch in trainloader:
+			data = gluon.utils.split_and_load(
+				batch.data[0], ctx_list=device, batch_axis=0
+			)
+			label = gluon.utils.split_and_load(
+				batch.label[0], ctx_list=device, batch_axis=0
+			)
+			outputs = []
+			with ag.record():
+				for x, y in zip(data, label):
+					z = net(x)
+					loss = softmax_cross_entropy_loss(z, y)
+					loss.backward()
+					outputs.append(z.softmax())
+					num_examples += len(x)
+			metrics.update(label, outputs)
+			trainer.step(batch.data[0].shape[0])
+		trainings_metric = metrics.get_name_value()
+		print("Accuracy & loss at epoch %d: %s" % (i, trainings_metric))
+	train_accuracy  = trainings_metric[0][1]
+	train_loss  = trainings_metric[1][1]
+	test_accuracy,test_loss = test(net,valloader)
+
+	results = {
+			"train_loss": train_loss,
+			"train_accuracy": train_accuracy,
+			"val_loss": test_loss,
+			"val_accuracy": test_accuracy,
+			}
+	return results
+
+def test(net, val_data, steps: int = None, device: str = "cpu"):
+    accuracy_metric = mx.metric.Accuracy()
+    loss_metric = mx.metric.CrossEntropy()
+    metrics = mx.metric.CompositeEvalMetric()
+    for child_metric in [accuracy_metric, loss_metric]:
+        metrics.add(child_metric)
+    val_data.reset()
+    num_examples = 0
+    for batch in val_data:
+        data = gluon.utils.split_and_load(batch.data[0], ctx_list=device, batch_axis=0)
+        label = gluon.utils.split_and_load(
+            batch.label[0], ctx_list=device, batch_axis=0
+        )
+        outputs = []
+        for x in data:
+            outputs.append(net(x).softmax())
+            num_examples += len(x)
+        metrics.update(label, outputs)
+    return metrics.get_name_value()[0][1], metrics.get_name_value()[1][1]
 
 
 def get_model_params(model):
-    """Returns a model's parameters."""
-    return [val.cpu().numpy() for _, val in model.state_dict().items()]
+	"""Returns a model's parameters."""
+	param = []
+	for val in model.collect_params(".*weight").values():
+		p = val.data()
+		param.append(p.asnumpy())
+	return param
+	
+	
