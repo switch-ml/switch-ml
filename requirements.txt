@@ -7,3 +7,6 @@ grpcio
 grpcio-tools
 tqdm
 redis
+tensorflow
+mxnet
+openml
